@@ -120,7 +120,7 @@ type UserPayload = {
 
 server.register<[UserPayload]>('login', async ([payload]) => {
   const user = await getUser({
-    email: payload.user,
+    email: payload.email,
     password: payload.password
   })
 
