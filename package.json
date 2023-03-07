@@ -1,0 +1,36 @@
+{
+  "name": "rpc-ws",
+  "version": "0.0.1",
+  "description": "JSON-RPC 2.0 implementation with websockets",
+  "main": "dist/main.js",
+  "module": "dist/main.mjs",
+  "types": "dist/main.d.ts",
+  "scripts": {
+    "prebuild": "rimraf dist/",
+    "build": "tsup"
+  },
+  "files": [
+    "dist/"
+  ],
+  "keywords": [
+    "websocket",
+    "json",
+    "rpc"
+  ],
+  "author": "Carlos Souza <carlos.pessoal@hotmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "tsx": "^3.12.3",
+    "uuid": "^9.0.0",
+    "ws": "^8.12.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.14.6",
+    "@types/ws": "^8.5.4",
+    "rimraf": "^4.3.1",
+    "tslib": "^2.5.0",
+    "tsup": "^6.6.3",
+    "typescript": "^4.9.5",
+    "vitest": "^0.29.2"
+  }
+}
