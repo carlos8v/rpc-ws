@@ -1,0 +1,135 @@
+# JSON-RPC 2.0 WebSocket
+
+A [JSON-RPC](https://www.jsonrpc.org/specification) implementation using websocket as a wrapper, available in Node.js environments and the web (client)
+
+## Get started
+
+```js
+// In the server
+import { Server } from 'rpc-ws'
+
+const server = await Server({
+  port: 3000,
+  host: 'localhost'
+})
+
+server.register('ping', () => {
+  return 'pong'
+})
+
+server.register('double', ([n]) => {
+  return n * 2
+})
+
+server.register('sum', ([n1, n2]) => {
+  return n1 * n2
+})
+
+server.register('login', ([payload]) => {
+  const { login, password } = payload
+  const user = ... // Get logged user
+  return user
+})
+
+// In the client
+import { Client } from 'rpc-ws'
+
+const ws = await Client('ws://localhost:3000')
+
+console.log(await ws.send('ping')) // Receives 'pong'
+console.log(await ws.send('double', 2)) // Receives 4
+console.log(await ws.send('sum', 5, 7)) // Receives 12
+
+// Receives user data
+const user = await ws.send('login', {
+  login: 'user',
+  password: 'pass'
+})
+
+ws.close() // Close websocket connection
+```
+
+### Using with a express server
+```js
+import express from 'express'
+import { Server } from 'rpc-ws'
+
+const app = express()
+... // Setup routes
+
+const httpServer = app.listen(3000)
+
+// Wrap express server with ws server
+const wsServer = await Server({ server: httpServer })
+```
+
+## Browser support
+
+You will need to host the browser bundle file to be able to access in your frontend.
+
+### Serving with express
+
+**src/server.js**:
+```js
+import { resolve } from 'path'
+import express from 'express'
+
+const app = express()
+express.use('/', express.static(resolve(__dirname, '../node_modules/rpc-ws/dist')))
+
+app.get('/', (req, res) => res.sendFile(resolve(__dirname, '../public/index.html')))
+
+app.listen(3000)
+```
+
+**public/index.html**:
+```html
+<head>
+  <!-- Import browser script -->
+  <script src="main.browser.js">
+</head>
+<body>
+  <script>
+    async function setupWS() {
+      const ws = await RPCWebSocket.Client('ws://localhost:3000')
+      console.log(await ws.send('ping')) // Receives 'pong'
+    }
+
+    setupWs()
+  </script>
+</body>
+```
+
+---
+
+## Typing functions
+
+If you are using typescript is possible to type server functions:
+
+```ts
+const server = await Server({ ... })
+
+server.register<[number, number]>('sum', (params) => {
+  return params[0] + params[1]
+}
+
+type UserPayload = {
+  email: string
+  password: string
+}
+
+server.register<[UserPayload]>('login', async ([payload]) => {
+  const user = await getUser({
+    email: payload.user,
+    password: payload.password
+  })
+
+  return user
+})
+```
+
+## TODO
+
+- [ ] Register events
+- [ ] Batch client requests
+- [ ] Register namespaces

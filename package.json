@@ -19,6 +19,10 @@
   ],
   "author": "Carlos Souza <carlos.pessoal@hotmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/carlos8v/rpc-ws.git"
+  },
   "dependencies": {
     "tsx": "^3.12.3",
     "uuid": "^9.0.0",
