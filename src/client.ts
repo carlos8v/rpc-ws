@@ -5,8 +5,8 @@ import { EventEmitter } from 'stream'
 
 type SocketQueue = {
   type: 'request' | 'notification'
-  result?: any
-  error?: any
+  result?: SocketResponse['result']
+  error?: SocketResponse['error']
 }
 
 export async function Client(endpoint: string) {
@@ -27,7 +27,11 @@ export async function Client(endpoint: string) {
   }
 
   async function setup() {
-    await new Promise((resolve) => ws.on('open', resolve))
+    await new Promise((resolve) => {
+      // TODO - Connection timeout
+      ws.on('open', resolve)
+    })
+
     connected = true
 
     ws.on('message', (data) => {
@@ -65,9 +69,12 @@ export async function Client(endpoint: string) {
     })
   }
 
-  function _send(request: SocketRequest): Promise<any> {
+  function _send(
+    request: SocketRequest
+  ): Promise<SocketResponse['error'] | SocketResponse['result']> {
     ws.send(JSON.stringify(request))
 
+    // TODO - Request timeout
     return new Promise((resolve, reject) => {
       emitter.on(String(request.id), () => {
         const response = queue.get(request.id)!
@@ -81,6 +88,7 @@ export async function Client(endpoint: string) {
     namespace: string,
     cb: (params: T) => void
   ): Promise<SocketResponse> {
+    // TODO - Connection timeout
     assertConnection()
 
     const request = {
@@ -97,6 +105,7 @@ export async function Client(endpoint: string) {
   }
 
   function unsubscribe(namespace: string) {
+    // TODO - Connection timeout
     assertConnection()
 
     const request = {
@@ -113,6 +122,7 @@ export async function Client(endpoint: string) {
   }
 
   function send(method: string, ...params: any) {
+    // TODO - Connection timeout
     assertConnection()
 
     const request = {
@@ -135,6 +145,6 @@ export async function Client(endpoint: string) {
     subscribe,
     unsubscribe,
     send,
-    close
+    close,
   }
 }

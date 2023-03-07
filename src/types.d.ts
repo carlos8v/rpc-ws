@@ -11,5 +11,9 @@ export type SocketResponse = {
   result?: any
   notification?: string
   params?: any
-  error?: any
+  error?: {
+    code: number
+    message: string
+    data?: any
+  }
 }

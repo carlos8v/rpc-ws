@@ -130,6 +130,5 @@ server.register<[UserPayload]>('login', async ([payload]) => {
 
 ## TODO
 
-- [ ] Register events
+- [ ] Handle client timeout requests
 - [ ] Batch client requests
-- [ ] Register namespaces
