@@ -14,7 +14,7 @@ type Namespaces = Map<
   }
 >
 
-type RegisterFn<T = any> = (params: T, socketId: string) => any
+type RegisterFn<T = any> = (params: T, socketId: string) => Promise<any> | any
 
 type SocketOpts = {
   binary?: boolean
@@ -83,7 +83,7 @@ export async function Server(opts: ServerOptions) {
   }
 
   function handleRPC(socket: WebSocket.WebSocket, socketId: string, ns = '/') {
-    socket.on('message', (data: any) => {
+    socket.on('message', async (data: any) => {
       const socketOpts: SocketOpts = {}
 
       try {
@@ -116,7 +116,7 @@ export async function Server(opts: ServerOptions) {
         }
 
         const fn = namespace.methods.get(payload.method)!
-        const response = fn(payload.params, socketId)
+        const response = await fn(payload.params, socketId)
 
         return socket.send(
           createJSONResponse({
