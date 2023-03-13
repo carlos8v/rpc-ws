@@ -6,7 +6,7 @@ export type SocketRequest = {
 }
 
 export type SocketResponse = {
-  id?: number
+  id?: number | null
   jsonrpc: string
   result?: any
   notification?: string

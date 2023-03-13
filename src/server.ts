@@ -5,14 +5,13 @@ import WebSocket, { WebSocketServer } from 'ws'
 import { randomUUID } from 'crypto'
 import { EventEmitter } from 'stream'
 
-type Namespaces = Map<
-  string,
-  {
-    clients: Map<string, WebSocket>
-    events: Map<string, Set<string>>
-    methods: Map<string, RegisterFn>
-  }
->
+type SocketNamespace = {
+  clients: Map<string, WebSocket>
+  events: Map<string, Set<string>>
+  methods: Map<string, RegisterFn>
+}
+
+type SocketNamespaces = Map<string, SocketNamespace>
 
 type RegisterFn<T = any> = (params: T, socketId: string) => Promise<any> | any
 
@@ -38,7 +37,19 @@ export async function Server(opts: ServerOptions) {
   const ws = new WebSocketServer(opts)
   const emitter = new EventEmitter()
 
-  const namespaces: Namespaces = new Map()
+  const namespaces: SocketNamespaces = new Map()
+  const internalMethods = new Map<
+    string,
+    (
+      ns: string,
+      targetNs: SocketNamespace,
+      request: SocketRequest,
+      socketId: string
+    ) => string
+  >([
+    ['rpc.on', subscribe],
+    ['rpc.off', unsubscribe],
+  ])
 
   await setup()
 
@@ -120,87 +131,29 @@ export async function Server(opts: ServerOptions) {
           data = Buffer.from(data).toString()
         }
 
-        const payload = JSON.parse(data) as SocketRequest
+        let payload: SocketRequest
 
-        const targetNs = namespaces.get(ns)!
-
-        if (payload.method === 'rpc.on') {
-          if (!validateRequest(payload)) {
-            return socket.send(
-              createJSONResponse({
-                id: payload.id,
-                error: {
-                  code: -32602,
-                  message: 'Invalid params',
-                },
-              })
-            )
-          }
-
-          if (!targetNs.events.has(payload.params[0])) {
-            return socket.send(
-              createJSONResponse({
-                id: payload.id,
-                error: {
-                  code: -32602,
-                  message: 'Invalid params',
-                },
-              })
-            )
-          }
-
-          const eventName = payload.params[0]
-          const eventSubscriptions = targetNs.events.get(eventName)!
-          eventSubscriptions.add(socketId)
-
-          targetNs.events.set(payload.params[0], eventSubscriptions)
-          namespaces.set(ns, targetNs)
-
+        try {
+          payload = JSON.parse(data)
+        } catch (error) {
           return socket.send(
             createJSONResponse({
-              id: payload.id,
-              result: { [eventName]: true },
+              id: null,
+              error: {
+                code: -32700,
+                message: 'Parse error',
+              },
             })
           )
         }
 
-        if (payload.method === 'rpc.off') {
-          if (!validateRequest(payload)) {
-            return socket.send(
-              createJSONResponse({
-                id: payload.id,
-                error: {
-                  code: -32602,
-                  message: 'Invalid params',
-                },
-              })
-            )
-          }
+        const targetNs = namespaces.get(ns)!
 
-          if (!targetNs.events.has(payload.params[0])) {
-            return socket.send(
-              createJSONResponse({
-                id: payload.id,
-                error: {
-                  code: -32602,
-                  message: 'Invalid params',
-                },
-              })
-            )
-          }
-
-          const eventName = payload.params[0]
-          const eventSubscriptions = targetNs.events.get(eventName)!
-          eventSubscriptions.delete(socketId)
-
-          targetNs.events.set(payload.params[0], eventSubscriptions)
-          namespaces.set(ns, targetNs)
-
+        if (internalMethods.has(payload.method)) {
+          const internalMethod = internalMethods.get(payload.method)!
           return socket.send(
-            createJSONResponse({
-              id: payload.id,
-              result: { [eventName]: false },
-            })
+            internalMethod(ns, targetNs, payload, socketId),
+            socketOpts
           )
         }
 
@@ -212,7 +165,8 @@ export async function Server(opts: ServerOptions) {
                 code: -32601,
                 message: 'Method not found',
               },
-            })
+            }),
+            socketOpts
           )
         }
 
@@ -223,14 +177,17 @@ export async function Server(opts: ServerOptions) {
           createJSONResponse({
             id: payload.id,
             result: response || undefined,
-          })
+          }),
+          socketOpts
         )
       } catch (error) {
         return socket.send(
-          JSON.stringify({
-            jsonrpc: version,
-            error: 'Unexpected error',
+          createJSONResponse({
             id: null,
+            error: {
+              code: -32603,
+              message: 'Internal error',
+            },
           }),
           socketOpts
         )
@@ -265,6 +222,84 @@ export async function Server(opts: ServerOptions) {
         })
       )
     }
+  }
+
+  function subscribe(
+    ns: string,
+    targetNs: SocketNamespace,
+    payload: SocketRequest,
+    socketId: string
+  ) {
+    if (!validateRequest(payload)) {
+      return createJSONResponse({
+        id: payload.id,
+        error: {
+          code: -32602,
+          message: 'Invalid params',
+        },
+      })
+    }
+
+    if (!targetNs.events.has(payload.params[0])) {
+      return createJSONResponse({
+        id: payload.id,
+        error: {
+          code: -32602,
+          message: 'Invalid params',
+        },
+      })
+    }
+
+    const eventName = payload.params[0]
+    const eventSubscriptions = targetNs.events.get(eventName)!
+    eventSubscriptions.add(socketId)
+
+    targetNs.events.set(payload.params[0], eventSubscriptions)
+    namespaces.set(ns, targetNs)
+
+    return createJSONResponse({
+      id: payload.id,
+      result: { [eventName]: true },
+    })
+  }
+
+  function unsubscribe(
+    ns: string,
+    targetNs: SocketNamespace,
+    payload: SocketRequest,
+    socketId: string
+  ) {
+    if (!validateRequest(payload)) {
+      return createJSONResponse({
+        id: payload.id,
+        error: {
+          code: -32602,
+          message: 'Invalid params',
+        },
+      })
+    }
+
+    if (!targetNs.events.has(payload.params[0])) {
+      return createJSONResponse({
+        id: payload.id,
+        error: {
+          code: -32602,
+          message: 'Invalid params',
+        },
+      })
+    }
+
+    const eventName = payload.params[0]
+    const eventSubscriptions = targetNs.events.get(eventName)!
+    eventSubscriptions.delete(socketId)
+
+    targetNs.events.set(payload.params[0], eventSubscriptions)
+    namespaces.set(ns, targetNs)
+
+    return createJSONResponse({
+      id: payload.id,
+      result: { [eventName]: false },
+    })
   }
 
   function register<T = any>(method: string, fn: RegisterFn<T>, ns = '/') {
@@ -307,7 +342,7 @@ export async function Server(opts: ServerOptions) {
     if (!ns) throw new Error('Namespace is required')
 
     return {
-      emit: (name: string, ...params: any[]) => emit(name, ns, params),
+      emit: (name: string, ...params: any[]) => emit(name, ns, ...params),
       register: <T = any>(method: string, fn: RegisterFn<T>) =>
         register(method, fn, ns),
       event: (name: string) => event(name, ns),
