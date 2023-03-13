@@ -13,6 +13,9 @@ const server = await Server({
   host: 'localhost'
 })
 
+server.event('hello') // Create event
+server.emit('hello', 'world') // Emit event
+
 server.register('ping', () => {
   return 'pong'
 })
@@ -31,6 +34,15 @@ server.register('login', ([payload]) => {
   return user
 })
 
+const chat = server.of('/chat') // Create namespace
+
+chat.event('messageReceive')
+
+chat.register('message', ([message]) => {
+  chat.emit('messageReceive', message)
+  return true
+})
+
 // In the client
 import { Client } from 'rpc-ws'
 
@@ -47,6 +59,17 @@ const user = await ws.send('login', {
 })
 
 ws.close() // Close websocket connection
+
+// Connect to namespace
+const wsChat = await Client('ws://localhost:3000/chat')
+
+await wsChat.subscribe('messageReceive', ([message]) => {
+  console.log(message) // Get broadcasted message
+})
+
+await wsChat.send('message', 'Hello world')
+
+wsChat.close()
 ```
 
 ### Using with a express server
