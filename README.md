@@ -153,5 +153,6 @@ server.register<[UserPayload]>('login', async ([payload]) => {
 
 ## TODO
 
-- [ ] Handle client timeout requests
+- [x] Handle client timeout requests
+- [ ] Handle client connection timeout
 - [ ] Batch client requests
