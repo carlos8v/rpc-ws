@@ -1,4 +1,4 @@
-import { SocketRequest, SocketResponse } from './types'
+import { SocketRequest, SocketResponse, SocketSendOptions } from './types'
 
 type SocketQueue = {
   type: 'request' | 'notification'
@@ -6,9 +6,11 @@ type SocketQueue = {
   error?: SocketResponse['error']
 }
 
-export async function Client(endpoint: string) {
+export async function Client(endpoint: string, opts?: SocketSendOptions) {
   let call_id = 0
   let connected = false
+
+  const timeout = opts?.timeout || 10000
 
   const version = '2.0'
   const ws = new WebSocket(endpoint)
@@ -65,14 +67,31 @@ export async function Client(endpoint: string) {
   function _send(
     request: SocketRequest
   ): Promise<SocketResponse['error'] | SocketResponse['result']> {
-    ws.send(JSON.stringify(request))
-
-    // TODO - Connection timeout
     return new Promise((resolve, reject) => {
+      const callTimeout = setTimeout(() => {
+        queue.set(request.id, {
+          type: 'request',
+          error: {
+            code: -32700,
+            message: 'Parse error',
+          },
+        })
+
+        emitter.dispatchEvent(new Event(String(request.id)))
+      }, timeout)
+
+      try {
+        ws.send(JSON.stringify(request))
+      } catch (error) {
+        return reject({ code: 32700, message: 'Parse error' })
+      }
+
       emitter.addEventListener(String(request.id), () => {
+        clearTimeout(callTimeout)
+
         const response = queue.get(request.id)!
         queue.delete(request.id)
-        resolve(response.result || response.error)
+        return resolve(response.result || response.error)
       })
     })
   }
@@ -81,7 +100,6 @@ export async function Client(endpoint: string) {
     namespace: string,
     cb: (params: any[]) => void
   ): Promise<SocketResponse> {
-    // TODO - Connection timeout
     assertConnection()
 
     const request = {
@@ -98,7 +116,6 @@ export async function Client(endpoint: string) {
   }
 
   function unsubscribe(namespace: string) {
-    // TODO - Connection timeout
     assertConnection()
 
     const request = {
@@ -115,7 +132,6 @@ export async function Client(endpoint: string) {
   }
 
   function send(method: string, ...params: any) {
-    // TODO - Connection timeout
     assertConnection()
 
     const request = {

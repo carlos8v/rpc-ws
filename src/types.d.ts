@@ -17,3 +17,7 @@ export type SocketResponse = {
     data?: any
   }
 }
+
+export type SocketSendOptions = {
+  timeout?: number
+}

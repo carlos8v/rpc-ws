@@ -130,23 +130,33 @@ export async function Server(opts: ServerOptions) {
           socketOpts.binary = true
           data = Buffer.from(data).toString()
         }
+      } catch (error) {
+        return socket.send(createJSONResponse({
+          id: null,
+          error: {
+            code: -32700,
+            message: 'Parse error'
+          }
+        }))
+      }
 
-        let payload: SocketRequest
+      let payload: SocketRequest
 
-        try {
-          payload = JSON.parse(data)
-        } catch (error) {
-          return socket.send(
-            createJSONResponse({
-              id: null,
-              error: {
-                code: -32700,
-                message: 'Parse error',
-              },
-            })
-          )
-        }
+      try {
+        payload = JSON.parse(data)
+      } catch (error) {
+        return socket.send(
+          createJSONResponse({
+            id: null,
+            error: {
+              code: -32700,
+              message: 'Parse error',
+            },
+          })
+        )
+      }
 
+      try {
         const targetNs = namespaces.get(ns)!
 
         if (internalMethods.has(payload.method)) {
@@ -183,7 +193,7 @@ export async function Server(opts: ServerOptions) {
       } catch (error) {
         return socket.send(
           createJSONResponse({
-            id: null,
+            id: payload?.id || null,
             error: {
               code: -32603,
               message: 'Internal error',

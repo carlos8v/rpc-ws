@@ -1,4 +1,4 @@
-import type { SocketRequest, SocketResponse } from './types'
+import type { SocketRequest, SocketResponse, SocketSendOptions } from './types'
 
 import WebSocket from 'ws'
 import { EventEmitter } from 'stream'
@@ -9,9 +9,11 @@ type SocketQueue = {
   error?: SocketResponse['error']
 }
 
-export async function Client(endpoint: string) {
+export async function Client(endpoint: string, opts?: SocketSendOptions) {
   let call_id = 0
   let connected = false
+
+  const timeout = opts?.timeout || 10000
 
   const version = '2.0'
   const ws = new WebSocket(endpoint)
@@ -72,14 +74,29 @@ export async function Client(endpoint: string) {
   function _send(
     request: SocketRequest
   ): Promise<SocketResponse['error'] | SocketResponse['result']> {
-    ws.send(JSON.stringify(request))
-
-    // TODO - Request timeout
     return new Promise((resolve, reject) => {
-      emitter.on(String(request.id), () => {
-        const response = queue.get(request.id)!
-        queue.delete(request.id)
-        resolve(response.result || response.error)
+      const callTimeout = setTimeout(
+        () => emitter.emit(String(request.id), new Error('Request timed out')),
+        timeout
+      )
+
+      ws.send(JSON.stringify(request), (socketErr) => {
+        if (socketErr) {
+          console.error(socketErr)
+          return reject({ code: -32700, message: 'Parse error' })
+        }
+
+        emitter.on(String(request.id), (error?: Error) => {
+          clearTimeout(callTimeout)
+
+          if (error) {
+            return reject({ code: -32000, messsage: error.message })
+          }
+
+          const response = queue.get(request.id)!
+          queue.delete(request.id)
+          return resolve(response.result || response.error)
+        })
       })
     })
   }
@@ -88,7 +105,6 @@ export async function Client(endpoint: string) {
     namespace: string,
     cb: (params: T) => void
   ): Promise<SocketResponse> {
-    // TODO - Connection timeout
     assertConnection()
 
     const request = {
@@ -105,7 +121,6 @@ export async function Client(endpoint: string) {
   }
 
   function unsubscribe(namespace: string) {
-    // TODO - Connection timeout
     assertConnection()
 
     const request = {
@@ -122,7 +137,6 @@ export async function Client(endpoint: string) {
   }
 
   function send(method: string, ...params: any) {
-    // TODO - Connection timeout
     assertConnection()
 
     const request = {
