@@ -179,16 +179,29 @@ export function Server(opts: ServerOptions) {
           )
         }
 
-        const fn = targetNs.methods.get(payload.method)!
-        const response = await fn(payload.params, socketId)
-
-        return socket.send(
-          createJSONResponse({
-            id: payload.id,
-            result: response || undefined,
-          }),
-          socketOpts
-        )
+        try {
+          const fn = targetNs.methods.get(payload.method)!
+          const response = await fn(payload.params, socketId)
+  
+          return socket.send(
+            createJSONResponse({
+              id: payload.id,
+              result: response || undefined,
+            }),
+            socketOpts
+          )
+        } catch (error: Error | any) {
+          return socket.send(
+            createJSONResponse({
+              id: payload.id,
+              error: {
+                code: -32000,
+                message: error?.message || 'Internal error'
+              }
+            }),
+            socketOpts
+          )
+        }
       } catch (error) {
         return socket.send(
           createJSONResponse({
