@@ -1,9 +1,12 @@
+import type { IncomingMessage } from 'http'
+import type { Duplex } from 'stream'
+import { EventEmitter } from 'stream'
+
 import type { SocketRequest, SocketResponse } from './types'
 
 import type { ServerOptions } from 'ws'
 import WebSocket, { WebSocketServer } from 'ws'
 import { randomUUID } from 'crypto'
-import { EventEmitter } from 'stream'
 
 type SocketNamespace = {
   clients: Map<string, WebSocket>
@@ -341,6 +344,22 @@ export function Server(opts: ServerOptions) {
     }
   }
 
+  async function handleUpgrade(
+    req: IncomingMessage,
+    socket: Duplex,
+    upgradeHead: Buffer,
+    callback?: <T extends WebSocket = WebSocket>(
+      client: T,
+      request: IncomingMessage
+    ) => void
+  ) {
+    ws.handleUpgrade(req, socket, upgradeHead, (socket) => {
+      ws.emit('listening')
+      ws.emit('connection', socket, req)
+      if (callback) callback(socket, req)
+    })
+  }
+
   function close() {
     return new Promise((resolve, reject) => {
       try {
@@ -359,6 +378,7 @@ export function Server(opts: ServerOptions) {
     on,
     of,
     event: (e: string) => event(e),
+    handleUpgrade,
     register: <T = any>(method: string, fn: RegisterFn<T>) =>
       register(method, fn),
     emit: (name: string, ...params: any[]) => emit(name, '/', ...params),
