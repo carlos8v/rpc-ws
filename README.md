@@ -8,7 +8,7 @@ A [JSON-RPC](https://www.jsonrpc.org/specification) implementation using websock
 // In the server
 import { Server } from 'rpc-ws'
 
-const server = await Server({
+const server = Server({
   port: 3000,
   host: 'localhost'
 })

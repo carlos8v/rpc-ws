@@ -31,7 +31,7 @@ type SocketEvents = {
   close: () => Promise<void> | void
 }
 
-export async function Server(opts: ServerOptions) {
+export function Server(opts: ServerOptions) {
   const version = '2.0'
 
   const ws = new WebSocketServer(opts)
@@ -41,7 +41,6 @@ export async function Server(opts: ServerOptions) {
   const internalMethods = new Map<
     string,
     (
-      ns: string,
       targetNs: SocketNamespace,
       request: SocketRequest,
       socketId: string
@@ -50,8 +49,6 @@ export async function Server(opts: ServerOptions) {
     ['rpc.on', subscribe],
     ['rpc.off', unsubscribe],
   ])
-
-  await setup()
 
   function createJSONResponse(data: Partial<SocketResponse>) {
     return JSON.stringify({
@@ -64,53 +61,48 @@ export async function Server(opts: ServerOptions) {
     })
   }
 
-  async function setup() {
+  function setup() {
     generateNamespace()
 
-    await new Promise((resolve, reject) =>
-      ws.on('listening', () => {
-        emitter.emit('listening')
-        resolve(null)
+    ws.on('listening', () => {
+      emitter.emit('listening')
+
+      ws.on('connection', (socket, req) => {
+        const ns = req.url || '/'
+        const validNs = /^\/\w*$/g.test(ns)
+  
+        if (!validNs) {
+          // TODO - handle socket terminate
+          // new Error(`Invalid namespace ${req.url} for web socket connection`)
+          return socket.close()
+        }
+  
+        if (!namespaces.has(ns)) {
+          // TODO - handle socket terminate
+          // new Error(`Namespace ${req.url} does not exists`)
+          return socket.close()
+        }
+  
+        const socketId = randomUUID()
+        const targetNs = namespaces.get(ns)!
+        targetNs.clients.set(socketId, socket)
+  
+        emitter.emit('connection', socket, socketId)
+  
+        handleRPC(socket, socketId, ns)
+  
+        socket.on('error', (error) =>
+          emitter.emit('socket-error', socketId, error)
+        )
+  
+        socket.on('close', () => {
+          targetNs.clients.delete(socketId)
+          emitter.emit('disconnection', socketId)
+        })
       })
-    )
-
-    ws.on('connection', (socket, req) => {
-      const ns = req.url || '/'
-      const validNs = /^\/\w*$/g.test(ns)
-
-      if (!validNs) {
-        // TODO - handle socket terminate
-        // new Error(`Invalid namespace ${req.url} for web socket connection`)
-        return socket.close()
-      }
-
-      if (!namespaces.has(ns)) {
-        // TODO - handle socket terminate
-        // new Error(`Namespace ${req.url} does not exists`)
-        return socket.close()
-      }
-
-      const socketId = randomUUID()
-      const targetNs = namespaces.get(ns)!
-      targetNs.clients.set(socketId, socket)
-      namespaces.set(ns, targetNs)
-
-      emitter.emit('connection', socket, socketId)
-
-      handleRPC(socket, socketId, ns)
-
-      socket.on('error', (error) =>
-        emitter.emit('socket-error', socketId, error)
-      )
-
-      socket.on('close', () => {
-        targetNs.clients.delete(socketId)
-        namespaces.set(ns, targetNs)
-        emitter.emit('disconnection', socketId)
-      })
+  
+      ws.on('error', (error) => emitter.emit('error', error))
     })
-
-    ws.on('error', (error) => emitter.emit('error', error))
   }
 
   function validateRequest(payload: Partial<SocketRequest>) {
@@ -131,13 +123,15 @@ export async function Server(opts: ServerOptions) {
           data = Buffer.from(data).toString()
         }
       } catch (error) {
-        return socket.send(createJSONResponse({
-          id: null,
-          error: {
-            code: -32700,
-            message: 'Parse error'
-          }
-        }))
+        return socket.send(
+          createJSONResponse({
+            id: null,
+            error: {
+              code: -32700,
+              message: 'Parse error',
+            },
+          })
+        )
       }
 
       let payload: SocketRequest
@@ -162,7 +156,7 @@ export async function Server(opts: ServerOptions) {
         if (internalMethods.has(payload.method)) {
           const internalMethod = internalMethods.get(payload.method)!
           return socket.send(
-            internalMethod(ns, targetNs, payload, socketId),
+            internalMethod(targetNs, payload, socketId),
             socketOpts
           )
         }
@@ -235,7 +229,6 @@ export async function Server(opts: ServerOptions) {
   }
 
   function subscribe(
-    ns: string,
     targetNs: SocketNamespace,
     payload: SocketRequest,
     socketId: string
@@ -264,9 +257,6 @@ export async function Server(opts: ServerOptions) {
     const eventSubscriptions = targetNs.events.get(eventName)!
     eventSubscriptions.add(socketId)
 
-    targetNs.events.set(payload.params[0], eventSubscriptions)
-    namespaces.set(ns, targetNs)
-
     return createJSONResponse({
       id: payload.id,
       result: { [eventName]: true },
@@ -274,7 +264,6 @@ export async function Server(opts: ServerOptions) {
   }
 
   function unsubscribe(
-    ns: string,
     targetNs: SocketNamespace,
     payload: SocketRequest,
     socketId: string
@@ -303,9 +292,6 @@ export async function Server(opts: ServerOptions) {
     const eventSubscriptions = targetNs.events.get(eventName)!
     eventSubscriptions.delete(socketId)
 
-    targetNs.events.set(payload.params[0], eventSubscriptions)
-    namespaces.set(ns, targetNs)
-
     return createJSONResponse({
       id: payload.id,
       result: { [eventName]: false },
@@ -317,8 +303,6 @@ export async function Server(opts: ServerOptions) {
 
     const targetNs = namespaces.get(ns)!
     targetNs.methods.set(method, fn)
-
-    namespaces.set(ns, targetNs)
   }
 
   function on<EventKey extends keyof SocketEvents>(
@@ -335,8 +319,6 @@ export async function Server(opts: ServerOptions) {
     if (targetNs.events.has(name)) throw new Error('Event already exists')
 
     targetNs.events.set(name, new Set())
-
-    namespaces.set(ns, targetNs)
   }
 
   function emit(name: string, ns = '/', ...params: any[]) {
@@ -370,6 +352,8 @@ export async function Server(opts: ServerOptions) {
       }
     })
   }
+
+  setup()
 
   return {
     on,
