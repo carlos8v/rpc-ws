@@ -353,6 +353,7 @@ export function Server(opts: ServerOptions) {
 
     return {
       emit: (name: string, ...params: any[]) => emit(name, ns, ...params),
+      clients: () => namespaces.get(ns)?.clients || new Map<string, WebSocket>(),
       register: <T = any>(method: string, fn: RegisterFn<T>) =>
         register(method, fn, ns),
       event: (name: string) => event(name, ns),
@@ -394,6 +395,7 @@ export function Server(opts: ServerOptions) {
     of,
     event: (e: string) => event(e),
     handleUpgrade,
+    clients: () => namespaces.get('/')?.clients || new Map<string, WebSocket>(),
     register: <T = any>(method: string, fn: RegisterFn<T>) =>
       register(method, fn),
     emit: (name: string, ...params: any[]) => emit(name, '/', ...params),

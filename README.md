@@ -34,6 +34,8 @@ server.register('login', ([payload]) => {
   return user
 })
 
+console.log(server.clients()) // Get client sockets map
+
 const chat = server.of('/chat') // Create namespace
 
 chat.event('messageReceive')
@@ -42,6 +44,8 @@ chat.register('message', ([message]) => {
   chat.emit('messageReceive', message)
   return true
 })
+
+console.log(chat.clients()) // Get client sockets map in the namespace
 
 // In the client
 import { Client } from 'rpc-ws'
