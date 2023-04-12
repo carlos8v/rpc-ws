@@ -35,6 +35,7 @@ type SocketEvents = {
 }
 
 export function Server(opts: ServerOptions) {
+  let listening = false
   const version = '2.0'
 
   const ws = new WebSocketServer(opts)
@@ -68,6 +69,7 @@ export function Server(opts: ServerOptions) {
     generateNamespace()
 
     ws.on('listening', () => {
+      listening = true
       emitter.emit('listening')
 
       ws.on('connection', (socket, req) => {
@@ -348,13 +350,13 @@ export function Server(opts: ServerOptions) {
     req: IncomingMessage,
     socket: Duplex,
     upgradeHead: Buffer,
-    callback?: <T extends WebSocket = WebSocket>(
-      client: T,
+    callback?: (
+      client: WebSocket.WebSocket,
       request: IncomingMessage
     ) => void
   ) {
     ws.handleUpgrade(req, socket, upgradeHead, (socket) => {
-      ws.emit('listening')
+      if (!listening) ws.emit('listening')
       ws.emit('connection', socket, req)
       if (callback) callback(socket, req)
     })
