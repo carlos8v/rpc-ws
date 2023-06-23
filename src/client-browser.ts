@@ -83,7 +83,12 @@ export async function Client(endpoint: string, opts?: SocketSendOptions) {
       try {
         ws.send(JSON.stringify(request))
       } catch (error) {
-        return reject({ code: 32700, message: 'Parse error' })
+        return reject({
+          error: {
+            code: 32700,
+            message: 'Parse error'
+          }
+        })
       }
 
       emitter.addEventListener(String(request.id), () => {
@@ -91,7 +96,11 @@ export async function Client(endpoint: string, opts?: SocketSendOptions) {
 
         const response = queue.get(request.id)!
         queue.delete(request.id)
-        return resolve(response.result || response.error)
+
+        return resolve({
+          data: response.result,
+          error: response.error
+        })
       })
     })
   }

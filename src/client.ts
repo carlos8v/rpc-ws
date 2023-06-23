@@ -90,12 +90,21 @@ export async function Client(endpoint: string, opts?: SocketSendOptions) {
           clearTimeout(callTimeout)
 
           if (error) {
-            return reject({ code: -32000, messsage: error.message })
+            return reject({
+              error: {
+                code: -32000,
+                messsage: error.message
+              }
+            })
           }
 
           const response = queue.get(request.id)!
           queue.delete(request.id)
-          return resolve(response.result || response.error)
+
+          return resolve({
+            data: response.result,
+            error: response.error
+          })
         })
       })
     })

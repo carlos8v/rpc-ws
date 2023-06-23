@@ -52,12 +52,13 @@ import { Client } from 'rpc-ws'
 
 const ws = await Client('ws://localhost:3000')
 
-console.log(await ws.send('ping')) // Receives 'pong'
-console.log(await ws.send('double', 2)) // Receives 4
-console.log(await ws.send('sum', 5, 7)) // Receives 12
+console.log(await ws.send('ping'))              // Receives { data: 'pong' }
+console.log(await ws.send('double', 2))         // Receives { data: 4 }
+console.log(await ws.send('sum', 5, 7))         // Receives { data: 12 }
+console.log(await ws.send('not-exists', 'foo')) // Receives { error: Error }
 
 // Receives user data
-const user = await ws.send('login', {
+const { data } = await ws.send('login', {
   login: 'user',
   password: 'pass'
 })
