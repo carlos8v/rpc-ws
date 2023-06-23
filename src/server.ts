@@ -196,7 +196,8 @@ export function Server(opts: ServerOptions) {
               id: payload.id,
               error: {
                 code: -32000,
-                message: error?.message || 'Internal error'
+                message: error?.message || 'Internal error',
+                data: error?.data
               }
             }),
             socketOpts

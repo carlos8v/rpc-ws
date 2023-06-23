@@ -34,6 +34,25 @@ server.register('login', ([payload]) => {
   return user
 })
 
+// Handling errors
+
+class ApplicationError extends Error {
+  data = undefined
+
+  constructor(message, data) {
+    super(message)
+    if (data) this.data = data
+  }
+}
+
+server.register('error', () => {
+  throw new Error('application-error',)
+})
+
+server.register('custom-error', () => {
+  throw new ApplicationError('custom-application-error', { error: true })
+})
+
 console.log(server.clients()) // Get client sockets map
 
 const chat = server.of('/chat') // Create namespace
@@ -55,7 +74,22 @@ const ws = await Client('ws://localhost:3000')
 console.log(await ws.send('ping'))              // Receives { data: 'pong' }
 console.log(await ws.send('double', 2))         // Receives { data: 4 }
 console.log(await ws.send('sum', 5, 7))         // Receives { data: 12 }
-console.log(await ws.send('not-exists', 'foo')) // Receives { error: Error }
+
+// Handling Error
+
+type ResponseError = {
+  code: number
+  message: string
+  data?: unknown
+}
+
+const notExists = await ws.send('not-exists')
+const error = await ws.send('error')
+const customError = await ws.send('custom-error')
+
+console.log(notExists)        // ResponseError
+console.log(error)            // ResponseError
+console.log(customError)      // ResponseError with data prop
 
 // Receives user data
 const { data } = await ws.send('login', {
