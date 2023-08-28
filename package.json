@@ -1,6 +1,6 @@
 {
   "name": "rpc-ws",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "JSON-RPC 2.0 implementation with websockets",
   "main": "dist/main.js",
   "module": "dist/main.mjs",
@@ -36,7 +36,6 @@
     "url": "git+https://github.com/carlos8v/rpc-ws.git"
   },
   "dependencies": {
-    "uuid": "^9.0.0",
     "ws": "^8.12.1"
   },
   "devDependencies": {
