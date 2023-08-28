@@ -111,7 +111,7 @@ await wsChat.send('message', 'Hello world')
 wsChat.close()
 ```
 
-### Using with a express server
+### Usage with express server
 ```js
 import express from 'express'
 import { Server } from 'rpc-ws'
@@ -125,7 +125,7 @@ const httpServer = app.listen(3000)
 const wsServer = await Server({ server: httpServer })
 ```
 
-### Usign with frontend frameworks
+### Usage with frontend frameworks
 
 You can import the client on frontend repos, like vite or next
 
