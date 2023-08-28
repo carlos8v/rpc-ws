@@ -1,6 +1,6 @@
 {
   "name": "rpc-ws",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "JSON-RPC 2.0 implementation with websockets",
   "main": "dist/main.js",
   "module": "dist/main.mjs",
@@ -12,6 +12,18 @@
   "files": [
     "dist/"
   ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./frontend": {
+      "import": "./dist/frontend.mjs",
+      "require": "./dist/frontend.js",
+      "default": "./dist/frontend.js"
+    }
+  },
   "keywords": [
     "websocket",
     "json",

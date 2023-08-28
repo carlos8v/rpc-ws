@@ -93,8 +93,8 @@ export async function Client(endpoint: string, opts?: SocketSendOptions) {
             return reject({
               error: {
                 code: -32000,
-                messsage: error.message
-              }
+                messsage: error.message,
+              },
             })
           }
 
@@ -103,7 +103,7 @@ export async function Client(endpoint: string, opts?: SocketSendOptions) {
 
           return resolve({
             data: response.result,
-            error: response.error
+            error: response.error,
           })
         })
       })

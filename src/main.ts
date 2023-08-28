@@ -1,2 +1,2 @@
-export { Client } from './client'
-export { Server } from './server'
+export { Client } from '../lib/client'
+export { Server } from '../lib/server'

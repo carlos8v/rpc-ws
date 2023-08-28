@@ -125,6 +125,28 @@ const httpServer = app.listen(3000)
 const wsServer = await Server({ server: httpServer })
 ```
 
+### Usign with frontend frameworks
+
+You can import the client on frontend repos, like vite or next
+
+```js
+import { BrowserClient } from 'rpc-ws/frontend'
+
+let rpc = undefined
+
+export async function getRpcClient() {
+  if (rpc) return rpc
+  rpc = await BrowserClient('ws://localhost:3000/rpc')
+  return rpc
+}
+
+async function main() {
+  const client = await getRpcClient()
+  console.log(await client.send('ping')) // Receives 'pong'
+}
+
+```
+
 ## Browser support
 
 You will need to host the browser bundle file to be able to access in your frontend.
@@ -137,7 +159,8 @@ import { resolve } from 'path'
 import express from 'express'
 
 const app = express()
-express.use('/', express.static(resolve(__dirname, '../node_modules/rpc-ws/dist')))
+// Expose browser bundle script
+express.use('/vendor', express.static(resolve(__dirname, '../node_modules/rpc-ws/dist')))
 
 app.get('/', (req, res) => res.sendFile(resolve(__dirname, '../public/index.html')))
 
@@ -148,7 +171,7 @@ app.listen(3000)
 ```html
 <head>
   <!-- Import browser script -->
-  <script src="main.browser.js">
+  <script src="vendor/main.browser.js">
 </head>
 <body>
   <script>
