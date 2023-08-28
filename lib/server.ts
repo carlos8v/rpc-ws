@@ -1,6 +1,6 @@
 import type { IncomingMessage } from 'http'
-import type { Duplex } from 'stream'
-import { EventEmitter } from 'stream'
+import type { Duplex } from 'node:stream'
+import stream from 'node:stream'
 
 import type { SocketRequest, SocketResponse } from './types'
 
@@ -39,7 +39,7 @@ export function Server(opts: ServerOptions) {
   const version = '2.0'
 
   const ws = new WebSocketServer(opts)
-  const emitter = new EventEmitter()
+  const emitter = new stream.EventEmitter()
 
   const namespaces: SocketNamespaces = new Map()
   const internalMethods = new Map<

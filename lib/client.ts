@@ -1,7 +1,7 @@
 import type { SocketRequest, SocketResponse, SocketSendOptions } from './types'
 
 import WebSocket from 'ws'
-import { EventEmitter } from 'stream'
+import stream from 'node:stream'
 
 type SocketQueue = {
   type: 'request' | 'notification'
@@ -19,7 +19,7 @@ export async function Client(endpoint: string, opts?: SocketSendOptions) {
   const ws = new WebSocket(endpoint)
 
   const events = new Map<string, (params: any) => void>()
-  const emitter = new EventEmitter()
+  const emitter = new stream.EventEmitter()
   const queue = new Map<number, SocketQueue>()
 
   await setup()
