@@ -1,10 +1,9 @@
-import { SocketRequest, SocketResponse, SocketSendOptions } from './types'
-
-type SocketQueue = {
-  type: 'request' | 'notification'
-  result?: SocketResponse['result']
-  error?: SocketResponse['error']
-}
+import type {
+  SocketRequest,
+  SocketResponse,
+  SocketSendOptions,
+  SocketQueue,
+} from './types'
 
 export async function Client(endpoint: string, opts?: SocketSendOptions) {
   let call_id = 0
@@ -26,12 +25,13 @@ export async function Client(endpoint: string, opts?: SocketSendOptions) {
   }
 
   async function setup() {
-    await new Promise((resolve) => {
-      // TODO - Connection timeout
-      ws.addEventListener('open', resolve)
-    })
-
-    connected = true
+    connected = await Promise.race<boolean>([
+      new Promise((resolve) =>
+        ws.addEventListener('open', () => resolve(true))
+      ),
+      new Promise((_, reject) => setTimeout(() => reject(false), timeout)),
+    ])
+    assertConnection()
 
     ws.addEventListener('message', (e) => {
       try {
@@ -86,8 +86,8 @@ export async function Client(endpoint: string, opts?: SocketSendOptions) {
         return reject({
           error: {
             code: 32700,
-            message: 'Parse error'
-          }
+            message: 'Parse error',
+          },
         })
       }
 
@@ -99,7 +99,7 @@ export async function Client(endpoint: string, opts?: SocketSendOptions) {
 
         return resolve({
           data: response.result,
-          error: response.error
+          error: response.error,
         })
       })
     })

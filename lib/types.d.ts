@@ -21,3 +21,9 @@ export type SocketResponse = {
 export type SocketSendOptions = {
   timeout?: number
 }
+
+export type SocketQueue = {
+  type: 'request' | 'notification'
+  result?: SocketResponse['result']
+  error?: SocketResponse['error']
+}

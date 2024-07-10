@@ -1,6 +1,6 @@
 {
   "name": "rpc-ws",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "description": "JSON-RPC 2.0 implementation with websockets",
   "main": "dist/main.js",
   "module": "dist/main.mjs",

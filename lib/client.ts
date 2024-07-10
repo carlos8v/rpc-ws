@@ -1,13 +1,12 @@
-import type { SocketRequest, SocketResponse, SocketSendOptions } from './types'
+import type {
+  SocketRequest,
+  SocketResponse,
+  SocketSendOptions,
+  SocketQueue,
+} from './types'
 
 import WebSocket from 'ws'
 import stream from 'node:stream'
-
-type SocketQueue = {
-  type: 'request' | 'notification'
-  result?: SocketResponse['result']
-  error?: SocketResponse['error']
-}
 
 export async function Client(endpoint: string, opts?: SocketSendOptions) {
   let call_id = 0
@@ -29,12 +28,12 @@ export async function Client(endpoint: string, opts?: SocketSendOptions) {
   }
 
   async function setup() {
-    await new Promise((resolve) => {
-      // TODO - Connection timeout
-      ws.on('open', resolve)
-    })
+    connected = await Promise.race<boolean>([
+      new Promise((resolve) => ws.on('open', async () => resolve(true))),
+      new Promise((_, reject) => setTimeout(() => reject(false), timeout)),
+    ])
 
-    connected = true
+    assertConnection()
 
     ws.on('message', (data) => {
       try {
