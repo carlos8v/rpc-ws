@@ -1,29 +1,29 @@
 export type SocketRequest = {
-  id: number
-  jsonrpc: string
-  method: string
-  params: any
-}
+  id: number;
+  jsonrpc: string;
+  method: string;
+  params: any;
+};
 
-export type SocketResponse = {
-  id?: number | null
-  jsonrpc: string
-  result?: any
-  notification?: string
-  params?: any
+export type SocketResponse<T = any> = {
+  id?: number | null;
+  jsonrpc: string;
+  result?: T;
+  notification?: string;
+  params?: any;
   error?: {
-    code: number
-    message: string
-    data?: any
-  }
-}
+    code: number;
+    message: string;
+    data?: any;
+  };
+};
 
 export type SocketSendOptions = {
-  timeout?: number
-}
+  timeout?: number;
+};
 
 export type SocketQueue = {
-  type: 'request' | 'notification'
-  result?: SocketResponse['result']
-  error?: SocketResponse['error']
-}
+  type: "request" | "notification";
+  result?: SocketResponse["result"];
+  error?: SocketResponse["error"];
+};

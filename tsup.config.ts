@@ -2,6 +2,7 @@ import { defineConfig } from 'tsup'
 
 export default defineConfig([
   {
+    clean: true,
     target: 'es2020',
     entry: ['src/main.ts'],
     format: ['cjs', 'esm'],
@@ -9,6 +10,7 @@ export default defineConfig([
     dts: true,
   },
   {
+    clean: true,
     target: 'es2020',
     entry: {
       'frontend': 'src/main-browser.ts',
@@ -18,6 +20,7 @@ export default defineConfig([
     dts: true,
   },
   {
+    clean: true,
     target: 'es2020',
     entry: {
       'main.browser': 'lib/client-browser.ts',

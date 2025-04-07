@@ -1,13 +1,13 @@
 {
   "name": "rpc-ws",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "JSON-RPC 2.0 implementation with websockets",
   "main": "dist/main.js",
   "module": "dist/main.mjs",
   "types": "dist/main.d.ts",
   "scripts": {
-    "prebuild": "rimraf dist/",
-    "build": "tsup"
+    "build": "tsup",
+    "test": "vitest"
   },
   "files": [
     "dist/"
@@ -41,11 +41,10 @@
   "devDependencies": {
     "@types/node": "^18.14.6",
     "@types/ws": "^8.5.4",
-    "rimraf": "^4.3.1",
     "tslib": "^2.5.0",
     "tsup": "^6.6.3",
     "tsx": "^3.12.5",
     "typescript": "^4.9.5",
-    "vitest": "^0.29.2"
+    "vitest": "^0.29.8"
   }
 }
